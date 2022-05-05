@@ -90,8 +90,6 @@ air_for
 ### 5. Calculate error metrics for the forecast compared to the test set [1 point]. 
 
 ```{r}
-data <- data.frame(pred = air_for$pred, actual = air_test)
-data
-mean((data$actual - data$pred)^2)
+accuracy(air_for$pred, air_test)
 ```
 
