@@ -1,0 +1,97 @@
+---
+title: "DATA 598 Assignment 2"
+author: "Shrusti Ghela"
+date: "5/4/2022"
+output: pdf_document
+---
+### Forecast the aus_airpassengers dataset in R package fpp3. (If you use this series, use the last 10 years as the test set.)
+
+```{r}
+library(fpp3)
+head(aus_airpassengers)
+```
+
+### 1. Split the series into train and test sets [1 point].
+
+```{r}
+air = ts(aus_airpassengers$Passengers, freq=1, start=c(1970))
+plot(air, , ylab="aircraft passengers (in millions)", xlab="Year", main="Total annual aircraft passengers for Australia")
+```
+
+```{r}
+end(air)
+```
+
+```{r}
+air_train <- window(air, end = c(2006))
+air_test <- window(air, start = c(2007))
+```
+
+### 2. Identify an ARIMA model for the train set and justify it. At a minimum, consider the model residuals; you may also consider other evidence [1 point]
+
+By simply eyeballing, we see that the data is not stationary
+To verify this, check this using KPSS test. 
+
+KPSS test
+$H_0$ : Series is stationary
+$H_{\alpha}$ :Series is NOT stationary
+
+```{r}
+library(tseries)
+kpss.test(air_train)
+```
+p-value = 0.01, p-value < 0.05, $\implies$ we reject the null-hypothesis
+
+```{r}
+kpss.test(ts(diff(air_train, differences = 1), freq=1, start=c(1971)))
+plot(ts(diff(air_train, differences = 1), freq=1, start=c(1971)))
+```
+```{r}
+kpss.test(ts(diff(air_train, differences = 2), freq=1, start=c(1972)))
+plot(ts(diff(air_train, differences = 2), freq=1, start=c(1972)))
+```
+We will need difference of 2 to convert the time-series to stationary time series. 
+
+```{r}
+library(astsa)
+acf2(ts(diff(air_train, differences = 2), freq=1, start=c(1972)))
+```
+One significant lag in ACF suggests a possibility of one MA term and two significant lag in PACF suggest a possibility of two AR terms
+
+```{r}
+sarima(air_train, p=2, d=2, q=1)
+```
+```{r}
+sarima(air_train, p=2, d=2, q=0)
+```
+```{r}
+sarima(air_train, p=0, d=2, q=1)
+```
+Looking at these 3 models, the aic is least for the (0,2,1) model. Looking at the plots as well, we see that for the (0,2,1) model, the Ljung-Box graph suggests higher p-value for all the lags. Compared to the other models, this is the best one. 
+
+Hence, the ARIMA model that I would select would be the (0,2,1) model based on the evidences provided by these models. 
+
+Verifying this result by auto.arima()
+
+```{r}
+library(forecast)
+auto.arima(air_train)
+```
+Yayy! I came to the same result!
+
+### 3. Generate a forecast from the model in #1 for the time period of the test set [1 point].
+### 4. Plot the train set, the forecast, and the test set [1 point].
+```{r}
+air_for = sarima.for(air_train, 10, 0, 2, 1)
+lines(air_test, type='o')
+
+air_for
+```
+### 5. Calculate error metrics for the forecast compared to the test set [1 point]. 
+
+```{r}
+data <- data.frame(pred = air_for$pred, actual = air_test)
+data
+mean((data$actual - data$pred)^2)
+```
+
